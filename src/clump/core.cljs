@@ -1,8 +1,3 @@
 (ns clump.core
-  (:require [clojure.browser.repl :as repl]))
-
-;; (repl/connect "http://localhost:9000/repl")
-
-(enable-console-print!)
-
-(println "Hello world!")
+  (:require [om.core :as om :include-macros true]
+            [om.dom :as dom :include-macros true]))
