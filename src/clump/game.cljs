@@ -14,4 +14,14 @@
    (new-game (shuffle deck)))
   ([deck]
    {:deck (vec (drop 12 deck))
-    :board (vec (take 12 deck))}))
+    :board (vec (take 12 deck))
+    :selected #{}}))
+
+(defn toggle-card [game card]
+  (let [selected (:selected game)]
+    (assoc game :selected (if (selected card)
+                            (disj selected card)
+                            (conj selected card)))))
+
+(defn card-selected [game card]
+  (assoc (toggle-card game card)))

@@ -1,7 +1,9 @@
 (ns clump.core
+  (:require-macros [cljs.core.async.macros :as m :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [clump.game :refer [new-game]]
+            [cljs.core.async :refer [chan put! <!]]
+            [clump.game :as game]
             [clump.ui.utils :refer [class-names]]))
 
 (defn shape-wrapper [contents]
@@ -28,28 +30,40 @@
       #js {:className (class-names [color fill])
            :points "10 85, 50 16, 90 85"})))
 
-(defn card [traits owner]
+(defn card [{:keys [traits selected]} owner opts]
   (reify
     om/IRender
     (render [this]
       (dom/div
         #js {:className "card-container"
-             :onClick (fn [_] (om/transact! traits #(assoc % :selected true)))}
+             :onClick #(put! (:card-selected opts) traits)}
         (dom/div
-          #js {:className (if (:selected traits) "card selected" "card")}
+          #js {:className (if (selected traits) "card selected" "card")}
           (apply dom/div
                  #js {:className "face front"}
                  (repeatedly (:number traits)
                              (partial shape traits))))))))
 
-(defn board [game owner]
+(defn board [data owner opts]
   (reify
+    om/IWillMount
+    (will-mount [this]
+      (go (loop []
+            (let [card (<! (:card-selected opts))]
+              (om/update! data
+                          (game/card-selected @data card)))
+            (recur))))
     om/IRender
     (render [this]
       (apply dom/div
              #js {:className "board"}
-             (om/build-all card (:board game))))))
+             (om/build-all
+               card
+               (map #(hash-map :traits % :selected (:selected data))
+                    (:board data))
+               {:opts opts})))))
 
 (om/root board
-         (new-game)
-         {:target (.getElementById js/document "app")})
+         (game/new-game)
+         {:target (.getElementById js/document "app")
+          :opts {:card-selected (chan)}})
