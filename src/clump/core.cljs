@@ -1,6 +1,7 @@
 (ns clump.core
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
+            [clump.game :refer [new-game]]
             [clump.ui.utils :refer [class-names]]))
 
 (defn shape-wrapper [contents]
@@ -27,7 +28,7 @@
       #js {:className (class-names [color fill])
            :points "10 85, 50 16, 90 85"})))
 
-(defn card [data owner]
+(defn card [traits owner]
   (reify
     om/IRender
     (render [this]
@@ -35,12 +36,19 @@
         #js {:className "card-container"}
         (dom/div
           #js {:className "card"}
-          (dom/div
-            #js {:className "face front"}
-            (shape {:shape :circle
-                    :color :red
-                    :fill :striped})))))))
+          (apply dom/div
+                 #js {:className "face front"}
+                 (repeatedly (:number traits)
+                             (partial shape traits))))))))
 
-(om/root card
-         nil
+(defn board [game owner]
+  (reify
+    om/IRender
+    (render [this]
+      (apply dom/div
+             #js {:className "board"}
+             (om/build-all card (:board game))))))
+
+(om/root board
+         (new-game)
          {:target (.getElementById js/document "app")})
