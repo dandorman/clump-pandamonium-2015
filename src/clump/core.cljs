@@ -33,9 +33,10 @@
     om/IRender
     (render [this]
       (dom/div
-        #js {:className "card-container"}
+        #js {:className "card-container"
+             :onClick (fn [_] (om/transact! traits #(assoc % :selected true)))}
         (dom/div
-          #js {:className "card"}
+          #js {:className (if (:selected traits) "card selected" "card")}
           (apply dom/div
                  #js {:className "face front"}
                  (repeatedly (:number traits)
