@@ -6,6 +6,24 @@
             [clump.game :as game]
             [clump.ui.utils :refer [alert class-names]]))
 
+(def game-state (atom {}))
+
+(def game-history (atom []))
+(add-watch game-state :history
+           (fn [_ _ _ new-state]
+             (when-not (= (last @game-history) new-state)
+               (swap! game-history conj new-state))))
+
+(defn new-game! []
+  (swap! game-history empty)
+  (swap! game-state #(merge % (game/new-game)))
+  game-state)
+
+(defn undo! []
+  (when (> (count @game-history) 1)
+    (swap! game-history pop)
+    (reset! game-state (last @game-history))))
+
 (defn hint! [data]
   (if-let [clump (game/hint @data)]
     (om/transact! data :board (fn [_] (map #(if ((set clump) %) (assoc % :highlight true) %) (:board @data))))
@@ -79,9 +97,10 @@
         (dom/h1 nil (str "Score: " (:score data)))
         (om/build board data {:opts opts})
         (dom/div nil
-                (dom/button #js {:onClick #(hint! data)} "Hint"))))))
+                 (dom/button #js {:onClick #(hint! data)} "Hint")
+                 (dom/button #js {:onClick #(undo!)} "Undo"))))))
 
 (om/root game-ui
-         (game/new-game)
+         (new-game!)
          {:target (.getElementById js/document "app")
           :opts {:card-selected (chan)}})
