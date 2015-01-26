@@ -4,7 +4,12 @@
             [om.dom :as dom :include-macros true]
             [cljs.core.async :refer [chan put! <!]]
             [clump.game :as game]
-            [clump.ui.utils :refer [class-names]]))
+            [clump.ui.utils :refer [alert class-names]]))
+
+(defn hint! [data]
+  (if-let [clump (game/hint @data)]
+    (om/transact! data :board (fn [_] (map #(if ((set clump) %) (assoc % :highlight true) %) (:board @data))))
+    (alert "No clumps?")))
 
 (defn shape-wrapper [contents]
   (dom/svg #js {:viewBox "0 0 100 100"}
@@ -38,7 +43,9 @@
         #js {:className "card-container"
              :onClick #(put! (:card-selected opts) traits)}
         (dom/div
-          #js {:className (if (selected traits) "card selected" "card")}
+          #js {:className (class-names {"card" true
+                                        "selected" (selected traits)
+                                        "highlight" (:highlight traits)})}
           (apply dom/div
                  #js {:className "face front"}
                  (repeatedly (:number traits)
@@ -63,7 +70,18 @@
                     (:board data))
                {:opts opts})))))
 
-(om/root board
+(defn game-ui [data owner opts]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/div
+        nil
+        (dom/h1 nil (str "Score: " (:score data)))
+        (om/build board data {:opts opts})
+        (dom/div nil
+                (dom/button #js {:onClick #(hint! data)} "Hint"))))))
+
+(om/root game-ui
          (game/new-game)
          {:target (.getElementById js/document "app")
           :opts {:card-selected (chan)}})
