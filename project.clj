@@ -29,6 +29,7 @@
              {:id "release"
               :source-paths ["src"]
               :compiler {
+                :preamble ["react/react.min.js"]
                 :main clump.core
                 :output-to "out-adv/clump.min.js"
                 :output-dir "out-adv"
